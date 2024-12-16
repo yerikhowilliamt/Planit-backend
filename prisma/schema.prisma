@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum TaskStatus {
+  SELESAI
+  BELUM_SELESAI
+}
+
+model User {
+  id                  Int         @id                             @default(autoincrement())
+  name                String      @db.VarChar(100)
+  email               String      @db.VarChar(100)                @unique
+  password            String?     @db.VarChar(100)
+  accessToken         String?     @db.Text                        @map("access_token")
+  refreshToken        String?     @db.Text                        @map("refresh_token")
+  image               String?
+  role                UserRole    @default(USER)
+
+  createdAt           DateTime    @default(now())                 @map("created_at")
+  updatedAt           DateTime    @updatedAt                      @map("updated_at")
+
+  accounts            Account[]
+  tasks               Task[]
+
+  @@map("users")
+}
+
+model Account {
+  id                  Int         @id                             @default(autoincrement())
+  userId              Int                                         @map("user_id")
+  provider            String
+  providerAccountId   String      @unique                         @map("provider_account_id")
+  accessToken         String?     @db.Text                        @map("access_token")
+  refreshToken        String?     @db.Text                        @map("refresh_token")
+
+  createdAt           DateTime    @default(now())                 @map("created_at")
+  updatedAt           DateTime    @updatedAt                      @map("updated_at")
+ 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@index([userId, providerAccountId])
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Task {
+  id                  Int         @id                             @default(autoincrement())
+  userId              Int                                         @map("user_id")
+  task                String      @db.VarChar(255)
+  status              TaskStatus  @default(BELUM_SELESAI)
+  isDeleted           Boolean     @default(false)                 @map("is_deleted")
+  createdAt           DateTime    @default(now())                 @map("created_at")
+  updatedAt           DateTime    @updatedAt                      @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@map("tasks")
+}
